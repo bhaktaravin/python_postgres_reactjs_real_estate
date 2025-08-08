@@ -351,8 +351,8 @@ def api_register():
         
         if result['success']:
             # Create JWT tokens for immediate login
-            access_token = create_access_token(identity=result['user']['id'])
-            refresh_token = create_refresh_token(identity=result['user']['id'])
+            access_token = create_access_token(identity=str(result['user']['id']))
+            refresh_token = create_refresh_token(identity=str(result['user']['id']))
             
             return jsonify({
                 'success': True,
@@ -392,8 +392,8 @@ def api_login():
         
         if result['success']:
             # Create JWT tokens
-            access_token = create_access_token(identity=result['user']['id'])
-            refresh_token = create_refresh_token(identity=result['user']['id'])
+            access_token = create_access_token(identity=str(result['user']['id']))
+            refresh_token = create_refresh_token(identity=str(result['user']['id']))
             
             return jsonify({
                 'success': True,
@@ -420,8 +420,8 @@ def api_login():
 def api_refresh_token():
     """Refresh access token using refresh token."""
     try:
-        current_user_id = get_jwt_identity()
-        new_access_token = create_access_token(identity=current_user_id)
+        current_user_id = int(get_jwt_identity())
+        new_access_token = create_access_token(identity=str(current_user_id))
         
         return jsonify({
             'success': True,
@@ -441,7 +441,7 @@ def api_refresh_token():
 def api_get_current_user():
     """Get current user information."""
     try:
-        current_user_id = get_jwt_identity()
+        current_user_id = int(get_jwt_identity())
         user = user_manager.get_user_by_id(current_user_id)
         
         if user:
@@ -466,7 +466,7 @@ def api_get_current_user():
 def api_update_profile():
     """Update user profile."""
     try:
-        current_user_id = get_jwt_identity()
+        current_user_id = int(get_jwt_identity())
         data = request.get_json()
         
         first_name = data.get('first_name')
@@ -502,7 +502,7 @@ def api_update_profile():
 def api_change_password():
     """Change user password."""
     try:
-        current_user_id = get_jwt_identity()
+        current_user_id = int(get_jwt_identity())
         data = request.get_json()
         
         current_password = data.get('current_password', '').strip()

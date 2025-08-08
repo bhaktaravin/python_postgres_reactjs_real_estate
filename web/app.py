@@ -49,6 +49,59 @@ user_manager = UserManager()
 # Create demo user on startup
 user_manager.create_demo_user()
 
+def init_all_databases():
+    """Initialize all database tables for the real estate investment tool."""
+    try:
+        print("🏠 Initializing Real Estate Investment Tool databases...")
+        
+        # Initialize all databases
+        researcher.init_database()
+        print("✅ Property research database initialized")
+        
+        tracker.init_database()
+        print("✅ Deal tracking database initialized")
+        
+        dev_manager.init_database()
+        print("✅ Developer management database initialized")
+        
+        user_manager.init_database()
+        print("✅ User authentication database initialized")
+        
+        # Create demo user
+        user_manager.create_demo_user()
+        print("✅ Demo user created")
+        
+        print("🎉 All databases initialized successfully!")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Database initialization failed: {str(e)}")
+        return False
+
+# Initialize databases on startup
+init_all_databases()
+
+@app.route('/init-db')
+def init_database_endpoint():
+    """Manual database initialization endpoint."""
+    try:
+        success = init_all_databases()
+        if success:
+            return jsonify({
+                'status': 'success',
+                'message': 'All databases initialized successfully'
+            }), 200
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': 'Database initialization failed'
+            }), 500
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': f'Database initialization error: {str(e)}'
+        }), 500
+
 @app.route('/health')
 def health_check():
     """Health check endpoint for deployment monitoring."""

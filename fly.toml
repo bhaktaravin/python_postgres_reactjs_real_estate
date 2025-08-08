@@ -1,39 +1,39 @@
-# Fly.io configuration for backend deployment
-app = "real-estate-backend"
-primary_region = "ord"
+# fly.toml app configuration file generated for real-estate-backend-billowing-leaf-4519 on 2025-08-07T18:03:58-07:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'real-estate-backend-billowing-leaf-4519'
+primary_region = 'ord'
 
 [build]
 
 [env]
-  PORT = "8080"
-  FLASK_ENV = "production"
+  FLASK_ENV = 'production'
+  PORT = '8080'
+  PYTHONPATH = '/app/src'
 
 [http_service]
   internal_port = 8080
   force_https = true
-  auto_stop_machines = true
+  auto_stop_machines = 'stop'
   auto_start_machines = true
   min_machines_running = 0
-  processes = ["app"]
+  processes = ['app']
 
-[[http_service.checks]]
-  interval = "10s"
-  grace_period = "5s"
-  method = "GET"
-  path = "/health"
-  protocol = "http"
-  timeout = "2s"
-  tls_skip_verify = false
+  [http_service.concurrency]
+    type = 'connections'
+    hard_limit = 25
+    soft_limit = 20
 
-[http_service.concurrency]
-  type = "connections"
-  hard_limit = 25
-  soft_limit = 20
+  [[http_service.checks]]
+    interval = '10s'
+    timeout = '2s'
+    grace_period = '5s'
+    method = 'GET'
+    path = '/health'
+    protocol = 'http'
+    tls_skip_verify = false
 
 [[vm]]
-  cpu_kind = "shared"
-  cpus = 1
-  memory_mb = 256
-
-[deploy]
-  release_command = "python -c 'from web.app import init_db; init_db()'"
+  size = 'shared-cpu-1x'

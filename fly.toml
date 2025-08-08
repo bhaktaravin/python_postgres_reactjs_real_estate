@@ -1,0 +1,39 @@
+# Fly.io configuration for backend deployment
+app = "real-estate-backend"
+primary_region = "ord"
+
+[build]
+
+[env]
+  PORT = "8080"
+  FLASK_ENV = "production"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+[[http_service.checks]]
+  interval = "10s"
+  grace_period = "5s"
+  method = "GET"
+  path = "/health"
+  protocol = "http"
+  timeout = "2s"
+  tls_skip_verify = false
+
+[http_service.concurrency]
+  type = "connections"
+  hard_limit = 25
+  soft_limit = 20
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 256
+
+[deploy]
+  release_command = "python -c 'from web.app import init_db; init_db()'"

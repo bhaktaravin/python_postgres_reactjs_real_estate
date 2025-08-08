@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+
+{% block title %}Deals - Real Estate Investment Tool{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2"><i class="fas fa-handshake"></i> Deals Management</h1>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newDealModal">
+        <i class="fas fa-plus"></i> New Deal
+    </button>
+</div>
+
+<!-- Deal Statistics -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">{{ stats.total_deals or 0 }}</h5>
+                <p class="card-text">Total Deals</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">{{ stats.pending or 0 }}</h5>
+                <p class="card-text">Pending</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">{{ stats.sold or 0 }}</h5>
+                <p class="card-text">Sold</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">${{ "{:,.0f}".format(stats.total_profit or 0) }}</h5>
+                <p class="card-text">Total Profit</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Active Deals -->
+{% if active_deals %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Active Deals</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Deal #</th>
+                        <th>Property</th>
+                        <th>Offer Amount</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for deal in active_deals %}
+                    <tr>
+                        <td><strong>#{{ deal.id }}</strong></td>
+                        <td>{{ deal.property_id }}</td>
+                        <td class="fw-bold text-success">${{ "{:,.0f}".format(deal.offer_amount) }}</td>
+                        <td>
+                            <span class="badge bg-{{ 'warning' if deal.status == 'pending' else 'primary' }}">
+                                {{ deal.status.title() }}
+                            </span>
+                        </td>
+                        <td>{{ deal.created_at }}</td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                {% if deal.status == 'pending' %}
+                                    <button class="btn btn-sm btn-success" onclick="updateDeal({{ deal.id }}, 'accepted')">
+                                        <i class="fas fa-check"></i> Accept
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" onclick="updateDeal({{ deal.id }}, 'rejected')">
+                                        <i class="fas fa-times"></i> Reject
+                                    </button>
+                                {% elif deal.status == 'accepted' %}
+                                    <button class="btn btn-sm btn-primary" onclick="updateDeal({{ deal.id }}, 'sold')">
+                                        <i class="fas fa-handshake"></i> Mark Sold
+                                    </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- All Deals History -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">Deal History</h5>
+    </div>
+    <div class="card-body">
+        {% if all_deals %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Deal #</th>
+                            <th>Property</th>
+                            <th>Offer Amount</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th>Profit</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for deal in all_deals %}
+                        <tr>
+                            <td><strong>#{{ deal.id }}</strong></td>
+                            <td>{{ deal.property_id }}</td>
+                            <td>${{ "{:,.0f}".format(deal.offer_amount) }}</td>
+                            <td>
+                                <span class="badge bg-{{ 'warning' if deal.status == 'pending' else 'primary' if deal.status == 'accepted' else 'success' if deal.status == 'sold' else 'danger' }}">
+                                    {{ deal.status.title() }}
+                                </span>
+                            </td>
+                            <td>{{ deal.created_at }}</td>
+                            <td>
+                                {% if deal.profit %}
+                                    <span class="fw-bold {{ 'profit-positive' if deal.profit > 0 else 'profit-negative' }}">
+                                        ${{ "{:,.0f}".format(deal.profit) }}
+                                    </span>
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>{{ deal.notes or '-' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="text-muted">No deals found. <a href="{{ url_for('research') }}">Research properties</a> to start making offers.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- New Deal Modal -->
+<div class="modal fade" id="newDealModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Create New Deal</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('create_deal') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="property_id" class="form-label">Property ID/Address</label>
+                        <input type="text" class="form-control" id="property_id" name="property_id" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="offer_amount" class="form-label">Offer Amount</label>
+                        <input type="number" class="form-control" id="offer_amount" name="offer_amount" step="500" min="1000" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Deal</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function updateDeal(dealId, status) {
+    if (confirm(`Are you sure you want to mark this deal as ${status}?`)) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/deals/${dealId}/update`;
+        
+        const statusInput = document.createElement('input');
+        statusInput.type = 'hidden';
+        statusInput.name = 'status';
+        statusInput.value = status;
+        form.appendChild(statusInput);
+        
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+</script>
+{% endblock %}

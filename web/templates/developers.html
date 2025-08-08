@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}Developers - Real Estate Investment Tool{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2"><i class="fas fa-users"></i> Developer Network</h1>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newDeveloperModal">
+        <i class="fas fa-plus"></i> Add Developer
+    </button>
+</div>
+
+<!-- Top Developers -->
+{% if top_developers %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Top Performing Developers</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            {% for dev in top_developers %}
+            <div class="col-md-4 mb-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-title">{{ dev.name }}</h6>
+                        <p class="card-text">
+                            <small class="text-muted">{{ dev.company or 'No company' }}</small><br>
+                            <strong>{{ dev.deal_count or 0 }}</strong> deals<br>
+                            <strong>${{ "{:,.0f}".format(dev.total_volume or 0) }}</strong> volume
+                        </p>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- All Developers -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">All Developer Contacts ({{ developers|length }})</h5>
+    </div>
+    <div class="card-body">
+        {% if developers %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Company</th>
+                            <th>Contact</th>
+                            <th>Specialty</th>
+                            <th>Last Contact</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for dev in developers %}
+                        <tr>
+                            <td><strong>{{ dev.name }}</strong></td>
+                            <td>{{ dev.company or '-' }}</td>
+                            <td>
+                                {% if dev.email %}
+                                    <a href="mailto:{{ dev.email }}">{{ dev.email }}</a><br>
+                                {% endif %}
+                                {% if dev.phone %}
+                                    <a href="tel:{{ dev.phone }}">{{ dev.phone }}</a>
+                                {% endif %}
+                                {% if not dev.email and not dev.phone %}
+                                    <span class="text-muted">No contact info</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ dev.specialty or '-' }}</td>
+                            <td>{{ dev.last_contact or 'Never' }}</td>
+                            <td>
+                                <span class="badge bg-{{ 'success' if dev.active else 'secondary' }}">
+                                    {{ 'Active' if dev.active else 'Inactive' }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-4">
+                <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                <h5>No developers added yet</h5>
+                <p class="text-muted">Start building your network by adding developer contacts</p>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newDeveloperModal">
+                    <i class="fas fa-plus"></i> Add Your First Developer
+                </button>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- New Developer Modal -->
+<div class="modal fade" id="newDeveloperModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Developer</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('add_developer') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Name *</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="company" class="form-label">Company</label>
+                        <input type="text" class="form-control" id="company" name="company">
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" name="email">
+                    </div>
+                    <div class="mb-3">
+                        <label for="phone" class="form-label">Phone</label>
+                        <input type="tel" class="form-control" id="phone" name="phone">
+                    </div>
+                    <div class="mb-3">
+                        <label for="specialty" class="form-label">Specialty</label>
+                        <select class="form-select" id="specialty" name="specialty">
+                            <option value="">Select specialty...</option>
+                            <option value="Residential">Residential</option>
+                            <option value="Commercial">Commercial</option>
+                            <option value="Land Development">Land Development</option>
+                            <option value="Mixed Use">Mixed Use</option>
+                            <option value="Industrial">Industrial</option>
+                            <option value="Retail">Retail</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Developer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

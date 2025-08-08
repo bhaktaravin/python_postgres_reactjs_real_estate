@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block title %}Property Research - Real Estate Investment Tool{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2"><i class="fas fa-search"></i> Property Research</h1>
+</div>
+
+<!-- Search Form -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Find Tax Delinquent Properties</h5>
+    </div>
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('research_search') }}">
+            <div class="row">
+                <div class="col-md-4">
+                    <label for="city" class="form-label">City</label>
+                    <input type="text" class="form-control" id="city" name="city" value="{{ city or '' }}" placeholder="Enter city name" required>
+                </div>
+                <div class="col-md-2">
+                    <label for="state" class="form-label">State</label>
+                    <select class="form-select" id="state" name="state">
+                        <option value="CA" {% if state == 'CA' %}selected{% endif %}>CA</option>
+                        <option value="TX" {% if state == 'TX' %}selected{% endif %}>TX</option>
+                        <option value="FL" {% if state == 'FL' %}selected{% endif %}>FL</option>
+                        <option value="NY" {% if state == 'NY' %}selected{% endif %}>NY</option>
+                        <option value="IL" {% if state == 'IL' %}selected{% endif %}>IL</option>
+                        <option value="AZ" {% if state == 'AZ' %}selected{% endif %}>AZ</option>
+                        <option value="NV" {% if state == 'NV' %}selected{% endif %}>NV</option>
+                        <option value="CO" {% if state == 'CO' %}selected{% endif %}>CO</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search"></i> Search
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Results -->
+{% if properties %}
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">Search Results - {{ properties|length }} Properties Found</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Address</th>
+                        <th>Market Value</th>
+                        <th>Tax Assessment</th>
+                        <th>Tax Owed</th>
+                        <th>Property Type</th>
+                        <th>Lot Size</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for property in properties %}
+                    <tr>
+                        <td>
+                            <strong>{{ property.address }}</strong><br>
+                            <small class="text-muted">{{ property.city }}, {{ property.state }}</small>
+                        </td>
+                        <td>
+                            <span class="fw-bold text-success">${{ "{:,.0f}".format(property.market_value or 0) }}</span>
+                        </td>
+                        <td>${{ "{:,.0f}".format(property.tax_assessment or 0) }}</td>
+                        <td>
+                            <span class="fw-bold text-danger">${{ "{:,.0f}".format(property.tax_amount_owed or 0) }}</span>
+                        </td>
+                        <td>{{ property.property_type or 'Unknown' }}</td>
+                        <td>{{ "%.2f"|format(property.lot_size or 0) }} acres</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary" onclick="calculateOffer('{{ property.address }}', {{ property.market_value or 0 }}, {{ property.tax_amount_owed or 0 }})">
+                                <i class="fas fa-calculator"></i> Calculate
+                            </button>
+                            <button class="btn btn-sm btn-success" onclick="showOfferModal('{{ property.address }}', {{ property.market_value or 0 }})">
+                                <i class="fas fa-handshake"></i> Offer
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Offer Modal -->
+<div class="modal fade" id="offerModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Make Offer</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('create_deal') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="property_id" class="form-label">Property</label>
+                        <input type="text" class="form-control" id="property_id" name="property_id" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label for="offer_amount" class="form-label">Offer Amount</label>
+                        <input type="number" class="form-control" id="offer_amount" name="offer_amount" step="500" min="1000" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="Optional notes about this offer..."></textarea>
+                    </div>
+                    <div id="offerAnalysis" class="alert alert-info" style="display: none;">
+                        <!-- Offer analysis will be populated by JavaScript -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Make Offer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function calculateOffer(propertyId, marketValue, taxOwed) {
+    fetch('/api/calculate-offer', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            market_value: marketValue,
+            tax_owed: taxOwed
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            alert('Error: ' + data.error);
+        } else {
+            alert(`Recommended Offer for ${propertyId}:\n\n` +
+                  `Market Value: $${marketValue.toLocaleString()}\n` +
+                  `Recommended Offer: $${data.offer_amount.toLocaleString()}\n` +
+                  `Estimated Profit: $${data.estimated_profit.toLocaleString()}\n` +
+                  `ROI: ${data.roi.toFixed(1)}%`);
+        }
+    })
+    .catch(error => {
+        alert('Error calculating offer: ' + error);
+    });
+}
+
+function showOfferModal(propertyId, marketValue) {
+    document.getElementById('property_id').value = propertyId;
+    
+    // Calculate suggested offer
+    fetch('/api/calculate-offer', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            market_value: marketValue,
+            tax_owed: 0
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (!data.error) {
+            document.getElementById('offer_amount').value = data.offer_amount;
+            document.getElementById('offerAnalysis').innerHTML = 
+                `<strong>Analysis:</strong><br>` +
+                `Market Value: $${marketValue.toLocaleString()}<br>` +
+                `Suggested Offer: $${data.offer_amount.toLocaleString()}<br>` +
+                `Estimated Profit: $${data.estimated_profit.toLocaleString()}<br>` +
+                `Expected ROI: ${data.roi.toFixed(1)}%`;
+            document.getElementById('offerAnalysis').style.display = 'block';
+        }
+    });
+    
+    new bootstrap.Modal(document.getElementById('offerModal')).show();
+}
+</script>
+{% endblock %}
